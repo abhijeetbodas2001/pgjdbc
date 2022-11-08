@@ -31,3 +31,8 @@ buildNumber.properties
 
 # Ignore folders used to build binaries for old Java
 /eclipsebin/
+
+# For project
+benchmarks/bin/
+pgjdbc-osgi-test/bin/
+pgjdbc/bin/
