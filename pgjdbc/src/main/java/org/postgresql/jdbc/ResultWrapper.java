@@ -9,6 +9,10 @@ package org.postgresql.jdbc;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+/* CS631 start */
+import com.google.gson.Gson;
+/* CS631 end */
+
 import java.sql.ResultSet;
 
 /**
@@ -18,6 +22,16 @@ import java.sql.ResultSet;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public class ResultWrapper {
+  /* CS631 start */
+  public static ResultWrapper copy(Object orig) {
+    // Implements Deep copy of the ResultWrapper instance using
+    // serialization and deserialization in JSON.
+    // This is done using the GSON library.
+    Gson gson = new Gson();
+    return gson.fromJson(gson.toJson(orig), ResultWrapper.class);
+  }
+  /* CS631 end */
+
   public ResultWrapper(@Nullable ResultSet rs) {
     this.rs = rs;
     this.updateCount = -1;

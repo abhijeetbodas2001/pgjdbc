@@ -305,6 +305,12 @@ public class PgStatement implements Statement, BaseStatement {
         .createQueryKey(sql, replaceProcessingEnabled, shouldUseParameterized, columnNames);
     CachedQuery cachedQuery;
     boolean shouldCache = preferQueryMode == PreferQueryMode.EXTENDED_CACHE_EVERYTHING;
+
+    /* CS631 start */
+    // Some clients configure the driver to not use Query caching
+    // We compulsively turn on caching for the sake of the our project
+    shouldCache = true;
+    /* CS631 end */
     if (shouldCache) {
       cachedQuery = queryExecutor.borrowQueryByKey(key);
     } else {
@@ -314,14 +320,40 @@ public class PgStatement implements Statement, BaseStatement {
       SqlCommand sqlCommand = cachedQuery.query.getSqlCommand();
       wantsGeneratedKeysOnce = sqlCommand != null && sqlCommand.isReturningKeywordPresent();
     }
-    boolean res;
-    try {
-      res = executeWithFlags(cachedQuery, flags);
-    } finally {
-      if (shouldCache) {
-        queryExecutor.releaseQuery(cachedQuery);
+    /* CS631 start */
+    boolean res = false;
+
+    boolean canUseOlderResult = false;
+    if (cachedQuery.result != null) {
+      // cachedQuery.result is not null, meaning that the query
+      // was executed earlier, and we have the results from earlier
+      // stored in the result attribute of the CachedQuery instance
+      System.out.println("Cached result exists!");
+      try {
+        // Create a deep copy of the result value, and us it as the
+        // result for the current query directly (instead of hitting
+        // the database)
+        this.result = (ResultWrapper) ResultWrapper.copy(cachedQuery.result);
+        canUseOlderResult = true;
+        res = true;
+      } catch (Exception e) {
+        System.out.println("Error cloning ResultWrapper");
+        System.out.println(e);
       }
     }
+
+    if (!canUseOlderResult) {
+      // This is the case where we couldn't find any cached results
+      // Go to the DB to fetch results like usual
+      try {
+        res = executeWithFlags(cachedQuery, flags);
+      } finally {
+        if (shouldCache) {
+          queryExecutor.releaseQuery(cachedQuery);
+        }
+      }
+    }
+    /* CS631 end */
     return res;
   }
 
@@ -512,6 +544,19 @@ public class PgStatement implements Statement, BaseStatement {
           wantsGeneratedKeysOnce = false;
         }
       }
+
+      /* CS631 start */
+      try {
+        // Now the result for this query has been calculated,
+        // store a deep copy of the result in the `result`
+        // field of the `CachedQuery` instance.
+        cachedQuery.result = (ResultWrapper) ResultWrapper.copy(result);
+      } catch (Exception e) {
+        // Error handling
+        System.out.println("Error cloning ResultWrapper");
+        System.out.println(e);
+      }
+      /* CS631 end */
     }
   }
 

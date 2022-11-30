@@ -5,6 +5,9 @@
 
 package org.postgresql.core;
 
+/* CS631 start */
+import org.postgresql.jdbc.ResultWrapper;
+/* CS631 end */
 import org.postgresql.util.CanEstimateSize;
 
 /**
@@ -17,6 +20,12 @@ public class CachedQuery implements CanEstimateSize {
    */
   public final Object key;
   public final Query query;
+  
+  /* CS631 start */
+  // This will contain the `ResultWrapper` after results have been
+  // fetched for this query once. Initialize to `null`.
+  public ResultWrapper result = null;
+  /* CS631 end */
   public final boolean isFunction;
 
   private int executeCount;
